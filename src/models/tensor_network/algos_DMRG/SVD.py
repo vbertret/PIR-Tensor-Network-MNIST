@@ -51,3 +51,19 @@ def SVD_B(sel,pos0,B,posL,N,maxalpha,cutoff,nmethod):
         u = u.reshape(2,dim[1],bond_dim)
         v= v.reshape(bond_dim,2,dim[3]).transpose((1,0,2))
     return (u,v)
+
+if __name__ == "__main__":
+    #test 1
+    sel=5 ; pos0=6 ; posL=8 ; N=9 ; maxalpha = 10 ; cutoff=10**(-10)
+    B=np.random.randn(2,10,2,20)
+    u1 , v1 = SVD_B(sel,pos0,B,posL,N,maxalpha,cutoff,1)
+    u2 , v2 = SVD_B(sel,pos0,B,posL,N,maxalpha,cutoff,2)
+    print("##### U1 #####")
+    print(u1.shape) 
+    print("##### V1 #####")
+    print(v1.shape)
+    print("##### U2 #####")
+    print(u2.shape)
+    print("##### V2 #####") 
+    print(v2.shape)
+    
