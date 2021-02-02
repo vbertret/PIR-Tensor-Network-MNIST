@@ -1,5 +1,6 @@
 import numpy as np
 import math
+import gzip
 def make_dataset_easy():
 
     Nt=8 #Nombre de training example
@@ -33,3 +34,20 @@ def make_dataset_random(N,nbExample):
     y=np.zeros((nbExample,2)) ; y[0:middle,0] = 1 ; y[middle:nbExample,1]=1
 
     return (data,y)
+
+def make_MNIST_dataset():
+    f = gzip.open('data/external/train-images-idx3-ubyte.gz','r')
+
+    image_size = 28
+    num_images = 60000
+
+    f.read(16)
+    buf = f.read(image_size * image_size * num_images)
+    data = np.frombuffer(buf, dtype=np.uint8).astype(np.float32)
+    data = data.reshape(num_images, image_size, image_size)
+
+    return data
+
+if __name__ == "__main__":
+    data=make_MNIST_dataset()
+    print(data.shape)
