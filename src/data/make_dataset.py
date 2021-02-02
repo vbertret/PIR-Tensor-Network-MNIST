@@ -1,7 +1,6 @@
 import numpy as np
 import math
 import gzip
-import matplotlib.pyplot as plt
 
 def make_dataset_easy():
 
@@ -125,8 +124,45 @@ def make_MNIST_dataset_small():
 
     
     np.save("data/processed/small_train_images.npy",new_train_data)
+    np.save("data/processed/small_test_images.npy",new_test_data)
 
     return (new_train_data , new_test_data , train_labels , test_labels)
+
+
+
+def load_MNIST_dataset_small():
+
+    #Training and Test images
+
+    train_data = np.load("data/processed/small_train_images.npy")
+    test_data = np.load("data/processed/small_test_images.npy")
+    
+    #Training labels
+
+    f = gzip.open('data/external/train-labels-idx1-ubyte.gz','r')
+
+    num_images = 60000
+
+    f.read(8)
+    buf = f.read(1 * num_images)
+    train_labels = np.frombuffer(buf, dtype=np.uint8).astype(np.int64)
+
+    f.close()
+
+    #Test labels
+
+    f = gzip.open('data/external/t10k-labels-idx1-ubyte.gz','r')
+
+    num_images = 10000
+
+    f.read(8)
+    buf = f.read(1 * num_images)
+    test_labels = np.frombuffer(buf, dtype=np.uint8).astype(np.int64)
+
+    f.close()
+
+    return (train_data , test_data , train_labels , test_labels)
+
 
 
 if __name__ == "__main__":
@@ -136,6 +172,4 @@ if __name__ == "__main__":
     new_labels = convert_one_hot_encoding(train_labels)
     print(new_labels[0],train_labels[0])
 
-    train_data , test_data , train_labels , test_labels =make_MNIST_dataset_small()
-    plt.imshow(train_data[0])
-    plt.show()
+    train_data , test_data , train_labels , test_labels =load_MNIST_dataset_small()
