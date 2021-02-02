@@ -47,7 +47,7 @@ def load_MNIST_dataset():
     f.read(16)
     buf = f.read(image_size * image_size * num_images)
     train_data = np.frombuffer(buf, dtype=np.uint8).astype(np.float32)
-    train_data = train_data.reshape(num_images, image_size, image_size)
+    train_data = train_data.reshape(num_images, image_size, image_size)/256
 
     f.close()
 
@@ -60,7 +60,7 @@ def load_MNIST_dataset():
     f.read(16)
     buf = f.read(image_size * image_size * num_images)
     test_data = np.frombuffer(buf, dtype=np.uint8).astype(np.float32)
-    test_data = test_data.reshape(num_images, image_size, image_size)
+    test_data = test_data.reshape(num_images, image_size, image_size)/256
 
     f.close()
 
@@ -167,9 +167,11 @@ def load_MNIST_dataset_small():
 
 if __name__ == "__main__":
     train_data , test_data , train_labels , test_labels =load_MNIST_dataset()
-    print(test_labels.shape)
 
     new_labels = convert_one_hot_encoding(train_labels)
     print(new_labels[0],train_labels[0])
 
+    make_MNIST_dataset_small()
+
     train_data , test_data , train_labels , test_labels =load_MNIST_dataset_small()
+    print(train_data[0])

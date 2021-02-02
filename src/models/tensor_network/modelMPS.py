@@ -140,6 +140,15 @@ class ModelMPS :
             pred.append(contractMPS(self.W,Phi))
         return pred
 
+    def accuracy(self,data_x,label):
+        prediction=self.predict(data_x)
+        nbExample=len(prediction)
+        cpt=0
+        for example in range(nbExample):
+            if(np.argmax(prediction[example])==np.argmax(label[example])):
+                cpt+=1
+        return cpt/nbExample
+
 
 if __name__ == "__main__":
     A = ModelMPS(9,2)
