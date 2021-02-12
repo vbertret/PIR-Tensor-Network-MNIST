@@ -1,6 +1,7 @@
 import numpy as np
-import math
+import random
 import gzip
+import math
 
 def make_dataset_easy():
 
@@ -24,15 +25,15 @@ def make_dataset_easy():
 
     return (data,y)
 
-def make_dataset_random(N,nbExample):
+def make_dataset_random(N,nbExample,nbClass):
     ##### Creation Dataset #####
-
-    middle=math.floor(nbExample/2)
     
     #Creation des images
     data=np.random.random_sample((nbExample,N))
     #Creation des labels
-    y=np.zeros((nbExample,2)) ; y[0:middle,0] = 1 ; y[middle:nbExample,1]=1
+    y=np.zeros((nbExample,nbClass)) 
+    for ex in range(nbExample):
+        y[ex,random.randint(0,nbClass-1)]=1
 
     return (data,y)
 

@@ -81,20 +81,21 @@ class ModelMPS :
 
             #Construction de B et A_tilde
             (B,A_tilde)=DMRG_creation_B_Atilde(self.W,sel,poss[0])
+            
+            if(alpha!=0):
+                for n in range(nbTraining):
+                    ### Création de phi_tilde ###
+                    img=data_x[n].reshape(-1,)
+                    si=phi(img[[Min,Max]]) ; Phi=phi(np.delete(img,(sel,poss[0])))
 
-            for n in range(nbTraining):
-                ### Création de phi_tilde ###
-                img=data_x[n].reshape(-1,)
-                si=phi(img[[Min,Max]]) ; Phi=phi(np.delete(img,(sel,poss[0])))
+                    (Phi_tilde1,Phi_tilde2) = DMRG_creation_phi_tilde(A_tilde,Phi,sel,poss[0],n,Min,self.N,nbTraining)
 
-                (Phi_tilde1,Phi_tilde2) = DMRG_creation_phi_tilde(A_tilde,Phi,sel,poss[0],n,Min,self.N,nbTraining)
+                    ##Calcul Cout
+                    (cout_ite,grad_ite)=DMRG_calcul_cout_gradient(B,Phi_tilde1,Phi_tilde2,si,label[n,:],sel,poss[0],self.posL,self.N)
+                    cout+=cout_ite ; gradB+=grad_ite
 
-                ##Calcul Cout
-                (cout_ite,grad_ite)=DMRG_calcul_cout_gradient(B,Phi_tilde1,Phi_tilde2,si,label[n,:],sel,poss[0],self.posL,self.N)
-                cout+=cout_ite ; gradB+=grad_ite
-
-            err.append( ((1/2)*cout)/nbTraining )
-            B=B-alpha*gradB
+                err.append( ((1/2)*cout)/nbTraining )
+                B=B-alpha*gradB/nbTraining
 
             #SVD
             (self.W[Min],self.W[Max])=SVD_B(sel,poss[0],B,self.posL,self.N,maxalpha,cutoff,nmethod)
@@ -121,7 +122,7 @@ class ModelMPS :
                 (cout_ite,grad_ite)=GD_calcul_cout_gradient(A,Phi_tilde1,Phi_tilde2,si,label[n,:],sel,self.N)
                 cout+=cout_ite ; gradW+=grad_ite
 
-            self.W[sel]=self.W[sel]-alpha*gradW
+            self.W[sel]=self.W[sel]-alpha*gradW/nbTraining
             err.append( ((1/2)*cout)/nbTraining )
         return err
 
