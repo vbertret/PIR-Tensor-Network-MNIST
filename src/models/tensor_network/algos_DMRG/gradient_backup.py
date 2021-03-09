@@ -157,16 +157,14 @@ def DMRG_calcul_cout_gradient_test(B,Phi_tilde1,Phi_tilde2,si,y,sel,pos0,posL,N)
 
     return (cost,gradB,Phi_tilde)
 
-def ConjugateGradient(Npass,B,sel,pos0,posL,N,Stockage,label,gradB,nbTraining,cutoff):
+def ConjugateGradient(Npass,B,sel,pos0,posL,N,Stockage,label,gradB,nbTraining):
     p=[]
     pAp=[]
     pA=[]
     r_tab=[]
     A=0
     b=np.zeros(B.shape)
-    i=0
-    r=0
-    while( (i==0 or tl.norm(r,2) > cutoff ) and i<Npass):
+    for i in range(Npass):
         
         ###Creation de A et b
         if(i==0):
@@ -270,6 +268,13 @@ def ConjugateGradient(Npass,B,sel,pos0,posL,N,Stockage,label,gradB,nbTraining,cu
             beta=r_tab[i+1]/r_tab[i]
             p.append(new_r+beta*p[i])
             r=new_r
+            """for len_p in range(len(p)):
+                ptemp-= float(tl.tenalg.contract(pA[len_p],(0,1,2),r,(0,1,2))/pAp[len_p])*p[len_p]
+            p.append(ptemp)
+
+            pA.append(tl.tenalg.contract(p[i],(0,1,2),A,(0,2,4)))
+            pAp.append(float(tl.tenalg.contract(p[i],(0,1,2),pA[i],(0,1,2)))) 
+            alpha=tl.tenalg.contract(pA[i],(0,1,2),r,(0,1,2))/pAp[i]"""
         elif( (sel==posL-1 and sel< pos0) or (sel==posL and sel> pos0) ):
             pA.append(tl.tenalg.contract(A,(0,2,4,6),p[i],(0,1,2,3)))
             pAp.append(float(tl.tenalg.contract(p[i],(0,1,2,3,4),pA[i],(0,1,2,3,4)))) 
@@ -280,6 +285,13 @@ def ConjugateGradient(Npass,B,sel,pos0,posL,N,Stockage,label,gradB,nbTraining,cu
             beta=r_tab[i+1]/r_tab[i]
             p.append(new_r+beta*p[i])
             r=new_r
+            """for len_p in range(len(p)):
+                ptemp-= float(tl.tenalg.contract(pA[len_p],(0,1,2,3,4),r,(0,1,2,3,4))/pAp[len_p])*p[len_p]
+            p.append(ptemp)
+
+            pA.append(tl.tenalg.contract(A,(0,2,4,6),p[i],(0,1,2,3)))
+            pAp.append(float(tl.tenalg.contract(p[i],(0,1,2,3,4),pA[i],(0,1,2,3,4)))) 
+            alpha=tl.tenalg.contract(pA[i],(0,1,2,3,4),r,(0,1,2,3,4))/pAp[i]"""
         elif( (sel==posL and sel< pos0) or (sel==posL+1 and sel > pos0)  ):
             pA.append(tl.tenalg.contract(A,(0,2,4,6),p[i],(0,1,3,4)).transpose((0,1,4,2,3)))
             pAp.append(float(tl.tenalg.contract(p[i],(0,1,2,3,4),pA[i],(0,1,2,3,4)))) 
@@ -290,6 +302,13 @@ def ConjugateGradient(Npass,B,sel,pos0,posL,N,Stockage,label,gradB,nbTraining,cu
             beta=r_tab[i+1]/r_tab[i]
             p.append(new_r+beta*p[i])
             r=new_r
+            """for len_p in range(len(p)):
+                ptemp-= float(tl.tenalg.contract(pA[len_p],(0,1,4,2,3),r,(0,1,2,3,4))/pAp[len_p])*p[len_p]
+            p.append(ptemp)
+
+            pA.append(tl.tenalg.contract(A,(0,2,4,6),p[i],(0,1,3,4)))
+            pAp.append(float(tl.tenalg.contract(p[i],(0,1,2,3,4),pA[i],(0,1,4,2,3)))) 
+            alpha=tl.tenalg.contract(pA[i],(0,1,4,2,3),r,(0,1,2,3,4))/pAp[i]"""
         elif( (sel==N-2 and sel<pos0 ) or sel==N-1):
             pA.append(tl.tenalg.contract(p[i],(0,1,2),A,(0,2,4)))
             pAp.append(float(tl.tenalg.contract(p[i],(0,1,2),pA[i],(0,1,2)))) 
@@ -300,6 +319,14 @@ def ConjugateGradient(Npass,B,sel,pos0,posL,N,Stockage,label,gradB,nbTraining,cu
             beta=r_tab[i+1]/r_tab[i]
             p.append(new_r+beta*p[i])
             r=new_r
+            
+            """for len_p in range(len(p)):
+                ptemp-= float(tl.tenalg.contract(pA[len_p],(0,1,2),r,(0,1,2))/pAp[len_p])*p[len_p]
+            p.append(ptemp)
+
+            pA.append(tl.tenalg.contract(p[i],(0,1,2),A,(0,2,4)))
+            pAp.append(float(tl.tenalg.contract(p[i],(0,1,2),pA[i],(0,1,2)))) 
+            alpha=tl.tenalg.contract(pA[i],(0,1,2),r,(0,1,2))/pAp[i]"""
         else:
             pA.append(tl.tenalg.contract(p[i],(0,1,2,3),A,(0,2,4,6)))
             pAp.append(float(tl.tenalg.contract(p[i],(0,1,2,3),pA[i],(0,1,2,3)))) 
@@ -310,8 +337,17 @@ def ConjugateGradient(Npass,B,sel,pos0,posL,N,Stockage,label,gradB,nbTraining,cu
             beta=r_tab[i+1]/r_tab[i]
             p.append(new_r+beta*p[i])
             r=new_r
+            """for len_p in range(len(p)):
+                ptemp-= float(tl.tenalg.contract(pA[len_p],(0,1,2,3),r,(0,1,2,3))/pAp[len_p])*p[len_p]
+            p.append(ptemp)
+
+            pA.append(tl.tenalg.contract(p[i],(0,1,2,3),A,(0,2,4,6)))
+            pAp.append(float(tl.tenalg.contract(p[i],(0,1,2,3),pA[i],(0,1,2,3)))) 
+            alpha=tl.tenalg.contract(pA[i],(0,1,2,3),r,(0,1,2,3))/pAp[i]"""
+
+
+
         B=B+alpha*p[i]
-        i=i+1
     return B
         
 

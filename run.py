@@ -8,8 +8,9 @@ import matplotlib.pyplot as plt
 
 if __name__=="__main__":
 
+    np.random.seed(0)
     #Creation dataset
-    N=30 ; nbExample=100 ; nbClass=10
+    N=50 ; nbExample=10 ; nbClass=2
     data,y = make_dataset_random(N,nbExample,nbClass)
 
     #Création du modèle
@@ -19,13 +20,10 @@ if __name__=="__main__":
 
     #Entrainement du modèle
     err=[]
-    for epoch in range(20):
-        if(epoch==0):
-            alpha=0
-        else:
-            alpha=9*10**(0)
-            err += A.train(data,y,alpha)
-            print(err[-1])
+    for epoch in range(3):
+        alpha=9*10**(0)
+        err += A.trainDMRG_test(data,y,alpha)    #train(data,y,alpha) 
+        print(err[-1])
 
     #Evaluation du modèle
     acc = A.accuracy(data,y)

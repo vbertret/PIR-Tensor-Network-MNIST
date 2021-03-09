@@ -1,7 +1,7 @@
 import setuptools
 
 setuptools.setup(
-      name='tensorNetwork',
+      name='src',
       version='0.0',
       description='',
       author='Victor Bertret',

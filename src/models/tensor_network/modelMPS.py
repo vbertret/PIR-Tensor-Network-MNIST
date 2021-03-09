@@ -1,18 +1,13 @@
 import math
 import numpy as np
 import matplotlib.pyplot as plt
-try:
-    from algos_DMRG.gradient import DMRG_creation_B_Atilde, DMRG_creation_phi_tilde, DMRG_calcul_cout_gradient
-    from algos_DMRG.SVD import SVD_B
-    from mapping.phi import phi
-    from algo_GD.gradient import GD_creation_phi_tilde, GD_calcul_cout_gradient
-    from tensor.tensor import contractMPS
-except ImportError:
-    from .algos_DMRG.gradient import DMRG_creation_B_Atilde, DMRG_creation_phi_tilde, DMRG_calcul_cout_gradient
-    from .algos_DMRG.SVD import SVD_B
-    from .mapping.phi import phi
-    from .algo_GD.gradient import GD_creation_phi_tilde, GD_calcul_cout_gradient
-    from .tensor.tensor import contractMPS
+
+from src.models.tensor_network.algos_DMRG.gradient import DMRG_creation_B_Atilde, DMRG_creation_phi_tilde, DMRG_calcul_cout_gradient , DMRG_calcul_cout_gradient_test , gradient_descent_fixed_stepsize , ConjugateGradient
+from src.models.tensor_network.algos_DMRG.SVD import SVD_B
+from src.models.tensor_network.mapping.phi import phi
+from src.models.tensor_network.algo_GD.gradient import GD_creation_phi_tilde, GD_calcul_cout_gradient 
+from src.models.tensor_network.tensor.tensor import contractMPS
+
 
 class ModelMPS :
     
@@ -72,7 +67,7 @@ class ModelMPS :
         self.nbSweep+=2
         poss=[i for i in range(0,self.N)]+[i for i in range(0,self.N-1)][::-1]
 
-        for e in range(2*(self.N-1)):
+        for _e in range(2*(self.N-1)):
             gradB=0
             cout=0
             sel=poss.pop(0)
@@ -97,6 +92,57 @@ class ModelMPS :
                 err.append( ((1/2)*cout)/nbTraining )
                 B=B-alpha*gradB/nbTraining
 
+            #SVD
+            (self.W[Min],self.W[Max])=SVD_B(sel,poss[0],B,self.posL,self.N,maxalpha,cutoff,nmethod)
+        return err
+
+    #Train the model with DMRG algo
+    def trainDMRG_test(self,data_x,label,alpha=10**(-1),Npass=4,nmethod=1,maxalpha=10,cutoff=10**(-10)):
+        err=[]
+        nbTraining = data_x.shape[0]
+        self.nbSweep+=2
+        poss=[i for i in range(0,self.N)] +[i for i in range(0,self.N-1)][::-1]
+
+        for _e in range(2*(self.N-1)):
+            gradB=0
+            cout=0
+            sel=poss.pop(0)
+            Max=max(sel,poss[0])
+            Min=min(sel,poss[0])
+
+            #Construction de B et A_tilde
+            (B,A_tilde)=DMRG_creation_B_Atilde(self.W,sel,poss[0])
+            
+            Stockage=[]
+            if(alpha!=0):
+                for n in range(nbTraining):
+
+                    ### Création de phi_tilde ###
+                    img=data_x[n].reshape(-1,)
+                    si=phi(img[[Min,Max]]) ; Phi=phi(np.delete(img,(sel,poss[0])))
+
+                    (Phi_tilde1,Phi_tilde2) = DMRG_creation_phi_tilde(A_tilde,Phi,sel,poss[0],n,Min,self.N,nbTraining)
+
+                    ##Calcul Cout
+                    (cout_ite,grad_ite,Phi_tilde)=DMRG_calcul_cout_gradient_test(B,Phi_tilde1,Phi_tilde2,si,label[n,:],sel,poss[0],self.posL,self.N)
+                    cout+=cout_ite ; gradB+=grad_ite 
+
+                    Stockage.append((si,Phi_tilde1,Phi_tilde2,Phi_tilde))
+
+                err.append( ((1/2)*cout)/nbTraining )
+                #if(len(err)>=2 and err[-1] > err[-2]):
+                #    if(sel>poss[0]):
+                #        print(f"sel : {sel+1}, poss : {sel}")
+                #    else:
+                #        print(f"sel : {sel-1}, poss : {sel}")
+                #print(f"sel={sel} Before conjugate gradient")
+                #if(sel==0):
+                #    print(err)
+                #else:
+                #    print(err[-1]-err[-2]) ; print(err[-1])
+                #Algo minimisation gradient
+                B = ConjugateGradient(Npass,B,sel,poss[0],self.posL,self.N,Stockage,label,gradB,nbTraining,cutoff)
+                #B = gradient_descent_fixed_stepsize(B,alpha,gradB,nbTraining)
             #SVD
             (self.W[Min],self.W[Max])=SVD_B(sel,poss[0],B,self.posL,self.N,maxalpha,cutoff,nmethod)
         return err

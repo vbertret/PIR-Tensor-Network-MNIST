@@ -16,13 +16,15 @@ if __name__=="__main__":
     N=train_data.shape[1]*train_data.shape[2]
 
     #Plus petit Ensemble
-    train_data = train_data[0:10]
-    train_labels = train_labels[0:10]
+    train_data = train_data[0:100]
+    train_labels = train_labels[0:100]
 
+    test_data = test_data[0:100]
+    test_labels = test_labels[0:100]
     #Création du modèle
     A = ModelMPS(N,10)
     A.algo("DMRG")
-    A.normalInitialisation(10,0.33)
+    A.normalInitialisation(5,0.33)
 
     #Calcul première valeur
     """img=train_data[0].reshape(-1,)
@@ -32,17 +34,16 @@ if __name__=="__main__":
     
     #Entrainement du modèle
     err=[]
-    for epoch in range(5):
-        if(epoch==0):
-            alpha=0
-        else:
-            alpha=10**(-2)
-        err += A.train(train_data,train_labels,alpha)
-        print(err[-1])
+    for epoch in range(8):
+        err +=  A.trainDMRG_test(train_data,train_labels,0.3)  # A.train(train_data,train_labels,alpha)
+        print(f"Erreur apprentissage : {err[-1]}.")
 
-    #Evaluation du modèle
-    acc = A.accuracy(train_data,train_labels)
-    print("Accuracy : ", acc*100 , "%") 
+        #Evaluation du modèle
+        acc = A.accuracy(test_data,test_labels)
+        print("Taux de bonne classification ( test ) : ", acc*100 , "%") 
+
+
 
     plt.plot(err)
     plt.show()
+
