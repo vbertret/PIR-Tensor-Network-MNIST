@@ -38,10 +38,10 @@ def make_dataset_random(N,nbExample,nbClass):
 
     return (data,y)
 
-def load_MNIST_dataset(path):
+def load_MNIST_dataset():
 
     #Training images
-    f = gzip.open(f'{path}/external/train-images-idx3-ubyte.gz','r')
+    f = gzip.open('.././data/external/train-images-idx3-ubyte.gz','r')
 
     image_size = 28
     num_images = 60000
@@ -54,7 +54,7 @@ def load_MNIST_dataset(path):
     f.close()
 
     #Test images
-    f = gzip.open(f'{path}/external/t10k-images-idx3-ubyte.gz','r')
+    f = gzip.open('data/external/t10k-images-idx3-ubyte.gz','r')
 
     image_size = 28
     num_images = 10000
@@ -68,7 +68,7 @@ def load_MNIST_dataset(path):
 
     #Training labels
 
-    f = gzip.open(f'{path}/external/train-labels-idx1-ubyte.gz','r')
+    f = gzip.open('data/external/train-labels-idx1-ubyte.gz','r')
 
     num_images = 60000
 
@@ -80,7 +80,7 @@ def load_MNIST_dataset(path):
 
     #Test labels
 
-    f = gzip.open(f'{path}/external/t10k-labels-idx1-ubyte.gz','r')
+    f = gzip.open('data/external/t10k-labels-idx1-ubyte.gz','r')
 
     num_images = 10000
 
@@ -95,16 +95,16 @@ def load_MNIST_dataset(path):
 def convert_one_hot_encoding(labels):
     num_labels=labels.shape[0]
     num_class = np.max(labels) + 1
-    new_labels=np.zeros((num_labels,num_class),dtype=np.int64)
+    new_labels=np.zeros((num_labels,num_class))
 
     for i in range(num_labels):
         new_labels[i,labels[i]]=1
 
     return new_labels
 
-def make_MNIST_dataset_small(path):
+def make_MNIST_dataset_small():
 
-    train_data , test_data , train_labels , test_labels = load_MNIST_dataset(path)
+    train_data , test_data , train_labels , test_labels = load_MNIST_dataset()
 
     #Training images
     num_images = 60000
@@ -125,22 +125,24 @@ def make_MNIST_dataset_small(path):
                 new_test_data[k,int(i/2),int(j/2) ] = (test_data[k,i,j] + test_data[k,i+1,j] + test_data[k,i,j+1] + test_data[k,i+1,j+1])/4
 
     
-    np.save(f'{path}/processed/small_train_images.npy',new_train_data)
-    np.save(f'{path}/processed/small_test_images.npy',new_test_data)
+    np.save("data/processed/small_train_images.npy",new_train_data)
+    np.save("data/processed/small_test_images.npy",new_test_data)
 
     return (new_train_data , new_test_data , train_labels , test_labels)
 
-def load_MNIST_dataset_small(path):
+
+
+def load_MNIST_dataset_small():
     
     
     #Training and Test images
 
-    train_data = np.load(f'{path}/processed/small_train_images.npy')
-    test_data = np.load(f'{path}/processed/small_test_images.npy')
+    train_data = np.load("../data/processed/small_train_images.npy")
+    test_data = np.load("../data/processed/small_test_images.npy")
     
     #Training labels
 
-    f = gzip.open(f'{path}/external/train-labels-idx1-ubyte.gz','r')
+    f = gzip.open('../data/external/train-labels-idx1-ubyte.gz','r')
 
     num_images = 60000
 
@@ -152,7 +154,7 @@ def load_MNIST_dataset_small(path):
 
     #Test labels
 
-    f = gzip.open(f'{path}/external/t10k-labels-idx1-ubyte.gz','r')
+    f = gzip.open('../data/external/t10k-labels-idx1-ubyte.gz','r')
 
     num_images = 10000
 
@@ -164,30 +166,15 @@ def load_MNIST_dataset_small(path):
 
     return (train_data , test_data , train_labels , test_labels)
     
-def load_subpart_MNIST_dataset_small(path,digits):
 
-    train_data , test_data , train_labels , test_labels = load_MNIST_dataset_small(path)
-
-    train_index = [i for i in range(len(train_data)) if train_labels[i] in digits]
-    test_index = [i for i in range(len(test_data)) if test_labels[i] in digits]
-
-    return (train_data[train_index] , test_data[test_index] , train_labels[train_index] , test_labels[test_index])
-    
 
 if __name__ == "__main__":
-    path = "data"
-    #train_data , test_data , train_labels , test_labels =load_MNIST_dataset(path)
-
-    #new_labels = convert_one_hot_encoding(train_labels)
-    #print(new_labels[0],train_labels[0])
-
-    #make_MNIST_dataset_small(path)
-
-    #train_data , test_data , train_labels , test_labels =load_MNIST_dataset_small(path)
-    digits=[2,1]
-    train_data , test_data , train_labels , test_labels = load_subpart_MNIST_dataset_small(path,digits)
-    print(train_labels[0:10])
-    print(test_labels[0:10])
+    train_data , test_data , train_labels , test_labels =load_MNIST_dataset()
 
     new_labels = convert_one_hot_encoding(train_labels)
     print(new_labels[0],train_labels[0])
+
+    make_MNIST_dataset_small()
+
+    train_data , test_data , train_labels , test_labels =load_MNIST_dataset_small()
+    print(train_data[0])
