@@ -1,5 +1,6 @@
 %SystemDrive%
-tensorNetwork.egg-info
+src.egg-info
+.ipynb_checkpoints
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
