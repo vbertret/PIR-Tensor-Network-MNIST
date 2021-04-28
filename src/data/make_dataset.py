@@ -5,33 +5,74 @@ import math
 import os
 
 def make_dataset_easy():
+    """
+    Creation of a very easy dataset
 
-    Nt=8 #Nombre de training example
+    Creation of a dataset with pictures of 3 by 3.
+    Pictures with white pixel on the left are labelling with 0
+    and other pictures are labelling with 1.
+
+    Returns
+    -------
+    data : list
+        list of pictures
+    y : list
+        list of labels in one hot encoding format
+    """
+
+    #Number of examples
+    Nt=8
     data=np.zeros((Nt,3,3))
 
-    #Carré blanc à gauche
+    #White square on left
     data[0]=np.array([[1,0,0],[1,0,0],[1,0,0]])
     data[1]=np.array([[1,0,0],[0,0,0],[0,0,0]])
     data[2]=np.array([[0,0,0],[1,0,0],[0,0,0]])
     data[3]=np.array([[0,0,0],[0,0,0],[1,0,0]])
 
-    #Carré blanc à droite
+    #White square on right
     data[4]=np.array([[0,0,1],[0,0,1],[0,0,1]])
     data[5]=np.array([[0,0,1],[0,0,0],[0,0,0]])
     data[6]=np.array([[0,0,0],[0,0,1],[0,0,0]])
     data[7]=np.array([[0,0,0],[0,0,0],[0,0,1]])
 
-    #Creation des labels
+    #Creation of the labels
     y=np.array([[1,0],[1,0],[1,0],[1,0],[0,1],[0,1],[0,1],[0,1]])
 
     return (data,y)
 
 def make_dataset_random(N,nbExample,nbClass):
-    ##### Creation Dataset #####
+    """
+    Creation of a random dataset
+
+    Creation of a dataset with input randomly drawn from
+    a uniform distribution between 0 and 1. Half of the inputs
+    are affected to the label 0 and the other half to 1.
+
+    Parameters
+    ----------
+    N : int
+        the number of features per input
+    nbExample : int
+        the number of example
+    nbClass : int
+        the number of Class
+
+    Returns
+    -------
+    data : list
+        list of pictures
+    y : list
+        list of labels in one hot encoding format
+    """
+
+    #Set the seed to have the same dataset each time for the same parameters
     np.random.seed(123)
-    #Creation des images
+
+    #Creation of inputs
     data=np.random.random_sample((nbExample,N))
-    #Creation des labels
+
+    #Creation of labels
     y=np.zeros((nbExample,nbClass)) 
     for ex in range(nbExample):
         y[ex,random.randint(0,nbClass-1)]=1
@@ -39,6 +80,29 @@ def make_dataset_random(N,nbExample,nbClass):
     return (data,y)
 
 def load_MNIST_dataset(path):
+    """
+    Loads the MNIST dataset.
+
+    Loads the data and the labels of the training and test set
+    from the MNIST dataset.
+
+    Parameters
+    ----------
+    path : str
+        path of the folder data in which there is a folder external
+        with all the files downloaded on the website http://yann.lecun.com/exdb/mnist/
+
+    Returns
+    -------
+    train_data : list
+        list of pictures from the MNIST training set
+    test_data : list
+        list of pictures from the MNIST test set
+    train_labels : list
+        list of labels from the MNIST training set
+    test_labels : list
+        list of labels from the MNIST test set
+    """
 
     #Training images
     f = gzip.open(f'{path}/external/train-images-idx3-ubyte.gz','r')
@@ -93,17 +157,62 @@ def load_MNIST_dataset(path):
     return (train_data , test_data , train_labels , test_labels)
 
 def convert_one_hot_encoding(labels):
+    """
+    Converts labels in the one hot encoding format
+
+    Parameters
+    ----------
+    labels : list
+        Some labels. The shape needs to be (nbTraining,1)
+
+    Returns
+    -------
+    new_labels : list
+        Same labels with one encoding format
+    """
+
+    #Retrieval of the number of labels
     num_labels=labels.shape[0]
+
+    #Computation of the number of classes
     num_class = np.max(labels) + 1
     new_labels=np.zeros((num_labels,num_class),dtype=np.int64)
 
+    #Convertion of the labels
     for i in range(num_labels):
         new_labels[i,labels[i]]=1
 
     return new_labels
 
 def make_MNIST_dataset_small(path):
+    """
+    Creation of a smaller MNIST dataset.
 
+    Uses the method load_MNIST_dataset to load the dataset and
+    reduce the size of the pictures by 2 from 28*28 to 14*14.
+    It returns the training and test set but it also saves 
+    the new pictures in the folder processed in a numpy
+    format.
+
+    Parameters
+    ----------
+    path : str
+        path of the folder data in which there is a folder external
+        with all the files downloaded on the website http://yann.lecun.com/exdb/mnist/
+
+    Returns
+    -------
+    train_data : list
+        list of pictures from the MNIST training set
+    test_data : list
+        list of pictures from the MNIST test set
+    train_labels : list
+        list of labels from the MNIST training set
+    test_labels : list
+        list of labels from the MNIST test set
+    """
+
+    #Loading the images
     train_data , test_data , train_labels , test_labels = load_MNIST_dataset(path)
 
     #Training images
@@ -125,13 +234,36 @@ def make_MNIST_dataset_small(path):
                 new_test_data[k,int(i/2),int(j/2) ] = (test_data[k,i,j] + test_data[k,i+1,j] + test_data[k,i,j+1] + test_data[k,i+1,j+1])/4
 
     
+    #Saving the pictures in the folder processed
     np.save(f'{path}/processed/small_train_images.npy',new_train_data)
     np.save(f'{path}/processed/small_test_images.npy',new_test_data)
 
     return (new_train_data , new_test_data , train_labels , test_labels)
 
 def load_MNIST_dataset_small(path):
-    
+    """
+    Loads the small MNIST dataset.
+
+    Loads the data and the labels of the training and test set
+    from the small MNIST dataset. You have to execute the method
+    make_MNIST_dataset_small before.
+
+    Parameters
+    ----------
+    path : str
+        path of the folder data. 
+
+    Returns
+    -------
+    train_data : list
+        list of pictures from the MNIST training set
+    test_data : list
+        list of pictures from the MNIST test set
+    train_labels : list
+        list of labels from the MNIST training set
+    test_labels : list
+        list of labels from the MNIST test set
+    """
     
     #Training and Test images
 
@@ -165,6 +297,29 @@ def load_MNIST_dataset_small(path):
     return (train_data , test_data , train_labels , test_labels)
     
 def load_subpart_MNIST_dataset_small(path,digits):
+    """
+    Loads a subpart of the small MNIST dataset.
+
+    Loads a subpart (only some digits) of the data and the labels of the training and test set
+    from the small MNIST dataset. You have to execute the method
+    make_MNIST_dataset_small before.
+
+    Parameters
+    ----------
+    path : str
+        path of the folder data. 
+
+    Returns
+    -------
+    train_data : list
+        list of pictures from the MNIST training set
+    test_data : list
+        list of pictures from the MNIST test set
+    train_labels : list
+        list of labels from the MNIST training set
+    test_labels : list
+        list of labels from the MNIST test set
+    """
 
     train_data , test_data , train_labels , test_labels = load_MNIST_dataset_small(path)
 

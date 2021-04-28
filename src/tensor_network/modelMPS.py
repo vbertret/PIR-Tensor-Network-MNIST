@@ -2,12 +2,12 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 
-from src.tensor_network.algos_DMRG.gradient import DMRG_creation_B_Atilde, DMRG_creation_phi_tilde, DMRG_calcul_cout_gradient , DMRG_calcul_cout_gradient_test , gradient_descent_fixed_stepsize , ConjugateGradient , ConjugateGradient2 , compute_stuff_gradient , compute_cost , DMRG_creation_phi_tilde_test , Adam 
+from src.tensor_network.algos_DMRG.gradient import DMRG_creation_B_Atilde, DMRG_creation_phi_tilde12, DMRG_compute_stuff_gradient , DMRG_compute_cost 
 from src.tensor_network.algos_DMRG.SVD import SVD_B
 from src.mapping.phi import phi
-from src.tensor_network.algo_GD.gradient import GD_creation_phi_tilde, GD_calcul_cout_gradient 
+from src.tensor_network.algo_AGD.gradient import AGD_creation_phi_tilde, AGD_calcul_cout_gradient 
 from src.tensor.tensor import contractMPS
-
+from src.tensor_network.optimizer import gradient_descent_fixed_stepsize , ConjugateGradient ,Adam 
 
 class ModelMPS :
     """
@@ -284,10 +284,10 @@ class ModelMPS :
                 si=phi(img[[Min,Max]]) ; Phi=phi(np.delete(img,(sel,poss[0])))
 
                 #Construction of phi_tilde1 and phi_tilde2
-                (Phi_tilde1,Phi_tilde2) = DMRG_creation_phi_tilde_test(A_tilde,Phi,sel,poss[0],n,Min,self.N,nbTraining)
+                (Phi_tilde1,Phi_tilde2) = DMRG_creation_phi_tilde12(A_tilde,Phi,sel,poss[0],n,Min,self.N,nbTraining)
 
                 #Construction of An, bn and Phi_tilde
-                An , bn , Phi_tilde = compute_stuff_gradient(Phi_tilde1,Phi_tilde2,si,sel,poss[0],self.posL,self.N,label[n,:])
+                An , bn , Phi_tilde = DMRG_compute_stuff_gradient(Phi_tilde1,Phi_tilde2,si,sel,poss[0],self.posL,self.N,label[n,:])
                 
                 #According to the loss function, either the method increments A and b, or it stocks Phi_tilde
                 if self.loss_function == "quadratic":
@@ -296,7 +296,7 @@ class ModelMPS :
                     Phi_tilde_tab.append(Phi_tilde)
 
                 #Computation of the cost
-                cost += compute_cost(B,Phi_tilde,label[n,:],sel,poss[0],self.posL,self.N,self.loss_function,cutoff)
+                cost += DMRG_compute_cost(B,Phi_tilde,label[n,:],sel,poss[0],self.posL,self.N,self.loss_function)
                 
             #Computation of the total cost of the step
             err.append( cost/nbTraining )
@@ -305,7 +305,7 @@ class ModelMPS :
             if(self.optimizer=="fixed"):
                 B = gradient_descent_fixed_stepsize(A,b,B,sel,poss[0],self.posL,self.N,alpha,nbTraining,cutoff,Npass,Phi_tilde_tab,self.loss_function,label)
             elif(self.optimizer=="CG"):
-                B = ConjugateGradient2(A,b,Npass,B,sel,poss[0],self.posL,self.N,nbTraining,cutoff,Phi_tilde_tab,label,err[-1])
+                B = ConjugateGradient(A,b,Npass,B,sel,poss[0],self.posL,self.N,nbTraining,cutoff,Phi_tilde_tab,label,err[-1])
             elif(self.optimizer=="Adam"):
                 B = Adam(A,b,B,sel,poss[0],self.posL,self.N,alpha,nbTraining,cutoff,Npass,Phi_tilde_tab,self.loss_function,label)
             
@@ -364,10 +364,10 @@ class ModelMPS :
                 si=phi(img[sel]) ; Phi=phi(np.delete(img,sel))
 
                 #Construction of phi_tilde1 and phi_tilde2
-                (Phi_tilde1,Phi_tilde2) = GD_creation_phi_tilde(A_tilde,Phi,sel,n,self.N,nbTraining)
+                (Phi_tilde1,Phi_tilde2) = AGD_creation_phi_tilde(A_tilde,Phi,sel,n,self.N,nbTraining)
 
                 #Computation of the cost and gradient of the step
-                (cost_ite,grad_ite)=GD_calcul_cout_gradient(A,Phi_tilde1,Phi_tilde2,si,label[n,:],sel,self.N)
+                (cost_ite,grad_ite)=AGD_calcul_cout_gradient(A,Phi_tilde1,Phi_tilde2,si,label[n,:],sel,self.N)
                 cost+=cost_ite ; gradW+=grad_ite
 
             #Optimization step : A gradient descent step with fixed stepsize
@@ -486,7 +486,7 @@ class ModelMPS :
             #If the example is well classified, incrementation of the counter
             if(np.argmax(prediction[example])==np.argmax(label[example])):
                 cpt+=1
-                
+
         return cpt/nbExample
 
 
@@ -497,7 +497,7 @@ if __name__ == "__main__":
     A.normalInitialization(5,0.4)
     Nt=8 #Nombre de training example
     data=np.zeros((Nt,3,3))
-
+    
     #Carré blanc à gauche
     data[0]=np.array([[1,0,0],[1,0,0],[1,0,0]])
     data[1]=np.array([[1,0,0],[0,0,0],[0,0,0]])

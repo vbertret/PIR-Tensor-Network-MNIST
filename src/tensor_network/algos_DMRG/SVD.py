@@ -1,8 +1,38 @@
 import numpy as np
 import tensorly as tl
 
-#choix du sens de contraction des valeurs propres
 def direction(u,s,v,sel,pos0,bond_dim,nmethod):
+    """
+    Makes the contraction with the eigen values after the Singular Value Decomposition
+
+    If nmethod is 1, then the contraction goes in the same direction as the sweep whereas
+    if nmethod is 2 , the contraction goes in the opposite direction.
+
+    Parameters
+    ---------
+    u : numpy array
+        one of the unitary matrix of the SVD
+    s : list
+        the list of eigen values of the SVD
+    v : numpy array
+        one of the unitary matrix of the SVD
+    sel : int
+        the number of one of the tensor selected to be in B
+    pos0 : int
+        the number of the other tensor selected to be in B
+    bond_dim : int
+        the number of eigen values to keep for the contraction
+    nmethod : int
+        the number to choose the direction
+    
+    Returns
+    -------
+    u : numpy array
+        the new matrix u
+    v : numpy array
+        the new matrix v
+    """
+
     if(nmethod==1):
         if(sel>pos0):
             v = v[0:bond_dim,:]  ; u =  u[:,0:bond_dim] @ np.diag(s)
@@ -15,16 +45,82 @@ def direction(u,s,v,sel,pos0,bond_dim,nmethod):
             v = np.diag(s) @ v[0:bond_dim,:]  ; u =  u[:,0:bond_dim]
     return (u,v)
 
-#Réalisation de la SVD de la matrice B ( après réorganisation ) 
 def SVD_matB(B,sel,pos0,maxalpha,cutoff,nmethod):
-        u, s, v = np.linalg.svd(B,full_matrices=False)
-        bond_dim=min(np.sum(s>cutoff),maxalpha)
-        s=s[0:bond_dim]
-        u , v = direction(u,s,v,sel,pos0,bond_dim,nmethod)
-        return (u , v, bond_dim)
+    """
+    Makes the Singular Value Decomposition of the matrix B
 
-#Réalisation de la SVD sur le tenseur B
+    The tensor was already converted to a matrix. Therefore,
+    the method do just the SVD, choose the bond dimension 
+    according to the cutoff and the maximal value and make
+    the contraction to have new values for the 2 tensors which
+    belong to B.
+
+    Parameters
+    ----------
+    B : numpy array
+        The tensor B in matrix form
+    sel : int
+        The number of one of the tensor selected to be in B
+    pos0 : int
+        The number of the other tensor selected to be in B
+    maxalpha : int
+        The maximal value of the bond dimension
+    cutoff : double
+        The truncation error goal when optimizing the MPS
+    nmethod : int
+        The number to choose the direction
+
+    Returns
+    -------
+    u : numpy array
+        new values for one of the tensors which belong to B
+    v : numpy array
+        new values for one of the tensors which belong to B
+    bond_dim : int
+        the new bond dimension between u and v
+    """
+
+    u, s, v = np.linalg.svd(B,full_matrices=False)
+    bond_dim=min(np.sum(s>cutoff),maxalpha)
+    s=s[0:bond_dim]
+    u , v = direction(u,s,v,sel,pos0,bond_dim,nmethod)
+    return (u , v, bond_dim)
+
 def SVD_B(sel,pos0,B,posL,N,maxalpha,cutoff,nmethod):
+    """
+    Makes the Singular Value Decomposition of the tensor B
+
+    It converts the tensor B to a matrix, it does a 
+    Singular Value Decomposition on it and then reconstructs 
+    2 tensors which will replace the old tensors belonging to
+    B.
+
+    Parameters
+    ----------
+    sel : int
+        The number of one of the tensor selected to be in B
+    pos0 : int
+        The number of the other tensor selected to be in B
+    B : numpy array
+        The tensor B in matrix form
+    posL : int
+        the position of the tensor with the label index
+    N : int
+        the number of tensor in the MPS form which is equal to the number of inputs
+    maxalpha : int
+        The maximal value of the bond dimension
+    cutoff : double
+        The truncation error goal when optimizing the MPS
+    nmethod : int
+        The number to choose the direction
+
+    Returns
+    -------
+    u : numpy array
+        new values for one of the tensors which belong to B
+    v : numpy array
+        new values for one of the tensors which belong to B
+    """
     dim=B.shape
     if(sel==0 or (sel==1 and sel>pos0) ):
         B=B.reshape(dim[0],dim[1]*dim[2])
