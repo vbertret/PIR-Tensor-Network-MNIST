@@ -28,7 +28,7 @@ def make_dataset_easy():
 
 def make_dataset_random(N,nbExample,nbClass):
     ##### Creation Dataset #####
-    
+    np.random.seed(123)
     #Creation des images
     data=np.random.random_sample((nbExample,N))
     #Creation des labels

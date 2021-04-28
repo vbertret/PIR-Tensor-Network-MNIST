@@ -359,7 +359,7 @@ def compute_stuff_gradient(Phi_tilde1,Phi_tilde2,si,sel,pos0,posL,N,y):
 
     return (An,bn,Phi_tilde)
 
-def compute_cost(B,Phi_tilde,y,sel,pos0,posL,N,loss_function):
+def compute_cost(B,Phi_tilde,y,sel,pos0,posL,N,loss_function,cutoff):
     if(sel==0 or (sel==1 and sel>pos0) ):
         fl=tl.tenalg.contract(B,(0,1,2),Phi_tilde,(0,1,2))
     elif( (sel==posL-1 and sel< pos0) or (sel==posL and sel> pos0) ):
@@ -377,38 +377,123 @@ def compute_cost(B,Phi_tilde,y,sel,pos0,posL,N,loss_function):
     if loss_function =="quadratic":
         cost = (1/2)*np.power(fl-y,2)
     elif loss_function == "cross-entropy":
-        cost = -y*np.log(np.exp(fl)/sum(np.exp(fl)))
+        cost = -y*np.log(np.exp(fl)/(sum(np.exp(fl)))+cutoff)
     elif loss_function =="log-quadratic":
         cost = (1/2)*np.log(np.power(fl-y,2)+1)
 
     return sum(cost)
 
 
-def ConjugateGradient2(A,b,Npass,B,sel,pos0,posL,N,nbTraining,cutoff):
-    p=[] ; pAp=[] ; pA=[] ; r_tab=[]
+def ConjugateGradient2_old(A,b,Npass,B,sel,pos0,posL,N,nbTraining,cutoff,Phi_tilde_tab,label,cost,eps=10**(-15)):
 
+    gradB = compute_gradient(A,b,B,sel,pos0,posL,N,cutoff)
+    erreur = False
+    r=-gradB
+    p=r
+
+    if(sel==0 or (sel==1 and sel>pos0) ):
+        r_prod = tl.tenalg.contract(r,(0,1,2),r,(0,1,2))
+    elif( (sel==posL-1 and sel< pos0) or (sel==posL and sel> pos0) ):
+        r_prod = tl.tenalg.contract(r,(0,1,2,3,4),r,(0,1,2,3,4))
+    elif( (sel==posL and sel< pos0) or (sel==posL+1 and sel > pos0)  ):
+        r_prod = tl.tenalg.contract(r,(0,1,2,3,4),r,(0,1,2,3,4))
+    elif( (sel==N-2 and sel<pos0 ) or sel==N-1):
+        r_prod = tl.tenalg.contract(r,(0,1,2),r,(0,1,2))
+    else:
+        r_prod = tl.tenalg.contract(r,(0,1,2,3),r,(0,1,2,3))
+
+
+    for _i in range(Npass): 
+        if _i==0 and tl.norm(r,2) < cutoff :
+            break
+        
+        if(sel==0 or (sel==1 and sel>pos0) ):
+            Ap = tl.tenalg.contract(A,(0,2,4),p,(0,1,2))
+            alpha = r_prod/(tl.tenalg.contract(p,(0,1,2),Ap,(0,1,2))+eps)
+            B = B + alpha*p
+            r=r-alpha*Ap
+            rnew_prod = tl.tenalg.contract(r,(0,1,2),r,(0,1,2))
+            if tl.norm(r,2) < cutoff :
+                break
+            p= r + (rnew_prod/r_prod)*p
+            r_prod = rnew_prod
+        elif( (sel==posL-1 and sel< pos0) or (sel==posL and sel> pos0) ):
+            Ap = tl.tenalg.contract(A,(0,2,4,6),p,(0,1,2,3))
+            alpha = r_prod/(tl.tenalg.contract(p,(0,1,2,3,4),Ap,(0,1,2,3,4))+eps)
+            B = B + alpha*p
+            r=r-alpha*Ap
+            rnew_prod = tl.tenalg.contract(r,(0,1,2,3,4),r,(0,1,2,3,4))
+            if tl.norm(r,2) < cutoff :
+                break
+            p= r + (rnew_prod/r_prod)*p
+            r_prod = rnew_prod
+        elif( (sel==posL and sel< pos0) or (sel==posL+1 and sel > pos0)  ):
+            Ap = tl.tenalg.contract(A,(0,2,4,6),p,(0,1,3,4)).transpose((0,1,4,2,3))
+            alpha = r_prod/(tl.tenalg.contract(p,(0,1,2,3,4),Ap,(0,1,2,3,4))+eps)
+            B = B + alpha*p
+            r=r-alpha*Ap
+            rnew_prod = tl.tenalg.contract(r,(0,1,2,3,4),r,(0,1,2,3,4))
+            if tl.norm(r,2) < cutoff :
+                break
+            p= r + (rnew_prod/r_prod)*p
+            r_prod = rnew_prod
+        elif( (sel==N-2 and sel<pos0 ) or sel==N-1):
+            Ap = tl.tenalg.contract(A,(0,2,4),p,(0,1,2))
+            alpha = r_prod/(tl.tenalg.contract(p,(0,1,2),Ap,(0,1,2))+eps)
+            B = B + alpha*p
+            r=r-alpha*Ap
+            rnew_prod = tl.tenalg.contract(r,(0,1,2),r,(0,1,2))
+            if tl.norm(r,2) < cutoff :
+                break
+            p= r + (rnew_prod/r_prod)*p
+            r_prod = rnew_prod
+        else:
+            Ap = tl.tenalg.contract(A,(0,2,4,6),p,(0,1,2,3))
+            alpha = r_prod/(tl.tenalg.contract(p,(0,1,2,3),Ap,(0,1,2,3))+eps)
+            B = B + alpha*p
+            r=r-alpha*Ap
+            rnew_prod = tl.tenalg.contract(r,(0,1,2,3),r,(0,1,2,3))
+            if tl.norm(r,2) < cutoff :
+                break
+            p= r + (rnew_prod/r_prod)*p
+            r_prod = rnew_prod
+
+    #    new_cost=0
+    #    for nb in range(len(Phi_tilde_tab)):
+    #        Phi_tilde = Phi_tilde_tab[nb]
+    #        new_cost+= compute_cost(B,Phi_tilde,label[nb,:],sel,pos0,posL,N,"quadratic",cutoff)
+    #    
+    #    print(f"cout : {new_cost/len(Phi_tilde_tab)} norme r : {tl.norm(r,1)}", end =" ,")
+    #    if(new_cost/len(Phi_tilde_tab) > cost):
+    #        erreur=True
+    #    cost = new_cost/len(Phi_tilde_tab)
+
+    #if erreur:
+    #    print(f" sel : {sel} pos0 : {pos0} ERREUR !!!")
+    #else:
+    #    print(f" sel : {sel} pos0 : {pos0}")
+    return B
+
+def ConjugateGradient2(A,b,Npass,B,sel,pos0,posL,N,nbTraining,cutoff,Phi_tilde_tab,label,cost):
+    p=[] ; pAp=[] ; pA=[] ; r_tab=[]
     i=0 #;r=0
-    A=A/nbTraining
-    b=b/nbTraining
-    gradB = compute_gradient(A,b,B,sel,pos0,posL,N)
+    #A=A/nbTraining
+    #b=b/nbTraining
+    gradB = compute_gradient(A,b,B,sel,pos0,posL,N,cutoff)
 
     r=-gradB
     p.append(r)
-    while( tl.norm(r,1) > cutoff and i<Npass): #(i==0 or 
-        #Gradient conjugué
-        #if(i==0):
-        #    r=-gradB
-        #    p.append(r)
-        
+    while( tl.norm(r,1) > cutoff and i<Npass ): 
         if(sel==0 or (sel==1 and sel>pos0) ):
             pA.append(tl.tenalg.contract(p[i],(0,1,2),A,(0,2,4)))
             pAp.append(float(tl.tenalg.contract(p[i],(0,1,2),pA[i],(0,1,2)))) 
             r_tab.append(tl.tenalg.contract(r,(0,1,2),r,(0,1,2)))
             alpha=r_tab[i]/pAp[i]
             new_r=r-alpha*pA[i]
-            r_tab.append(tl.tenalg.contract(new_r,(0,1,2),new_r,(0,1,2)))
-            beta=r_tab[i+1]/r_tab[i]
-            p.append(new_r+beta*p[i])
+            if tl.norm(new_r,1) > cutoff :
+                r_tab.append(tl.tenalg.contract(new_r,(0,1,2),new_r,(0,1,2)))
+                beta=r_tab[i+1]/r_tab[i]
+                p.append(new_r+beta*p[i])
             r=new_r
         elif( (sel==posL-1 and sel< pos0) or (sel==posL and sel> pos0) ):
             pA.append(tl.tenalg.contract(A,(0,2,4,6),p[i],(0,1,2,3)))
@@ -416,9 +501,10 @@ def ConjugateGradient2(A,b,Npass,B,sel,pos0,posL,N,nbTraining,cutoff):
             r_tab.append(tl.tenalg.contract(r,(0,1,2,3,4),r,(0,1,2,3,4)))
             alpha=r_tab[i]/pAp[i]
             new_r=r-alpha*pA[i]
-            r_tab.append(tl.tenalg.contract(new_r,(0,1,2,3,4),new_r,(0,1,2,3,4)))
-            beta=r_tab[i+1]/r_tab[i]
-            p.append(new_r+beta*p[i])
+            if tl.norm(new_r,1) > cutoff :
+                r_tab.append(tl.tenalg.contract(new_r,(0,1,2,3,4),new_r,(0,1,2,3,4)))
+                beta=r_tab[i+1]/r_tab[i]
+                p.append(new_r+beta*p[i])
             r=new_r
         elif( (sel==posL and sel< pos0) or (sel==posL+1 and sel > pos0)  ):
             pA.append(tl.tenalg.contract(A,(0,2,4,6),p[i],(0,1,3,4)).transpose((0,1,4,2,3)))
@@ -426,9 +512,10 @@ def ConjugateGradient2(A,b,Npass,B,sel,pos0,posL,N,nbTraining,cutoff):
             r_tab.append(tl.tenalg.contract(r,(0,1,2,3,4),r,(0,1,2,3,4)))
             alpha=r_tab[i]/pAp[i]
             new_r=r-alpha*pA[i]
-            r_tab.append(tl.tenalg.contract(new_r,(0,1,2,3,4),new_r,(0,1,2,3,4)))
-            beta=r_tab[i+1]/r_tab[i]
-            p.append(new_r+beta*p[i])
+            if tl.norm(new_r,1) > cutoff :
+                r_tab.append(tl.tenalg.contract(new_r,(0,1,2,3,4),new_r,(0,1,2,3,4)))
+                beta=r_tab[i+1]/r_tab[i]
+                p.append(new_r+beta*p[i])
             r=new_r
         elif( (sel==N-2 and sel<pos0 ) or sel==N-1):
             pA.append(tl.tenalg.contract(p[i],(0,1,2),A,(0,2,4)))
@@ -436,9 +523,10 @@ def ConjugateGradient2(A,b,Npass,B,sel,pos0,posL,N,nbTraining,cutoff):
             r_tab.append(tl.tenalg.contract(r,(0,1,2),r,(0,1,2)))
             alpha=r_tab[i]/pAp[i]
             new_r=r-alpha*pA[i]
-            r_tab.append(tl.tenalg.contract(new_r,(0,1,2),new_r,(0,1,2)))
-            beta=r_tab[i+1]/r_tab[i]
-            p.append(new_r+beta*p[i])
+            if tl.norm(new_r,1) > cutoff :
+                r_tab.append(tl.tenalg.contract(new_r,(0,1,2),new_r,(0,1,2)))
+                beta=r_tab[i+1]/r_tab[i]
+                p.append(new_r+beta*p[i])
             r=new_r
         else:
             pA.append(tl.tenalg.contract(p[i],(0,1,2,3),A,(0,2,4,6)))
@@ -446,15 +534,17 @@ def ConjugateGradient2(A,b,Npass,B,sel,pos0,posL,N,nbTraining,cutoff):
             r_tab.append(tl.tenalg.contract(r,(0,1,2,3),r,(0,1,2,3)))
             alpha=r_tab[i]/pAp[i]
             new_r=r-alpha*pA[i]
-            r_tab.append(tl.tenalg.contract(new_r,(0,1,2,3),new_r,(0,1,2,3)))
-            beta=r_tab[i+1]/r_tab[i]
-            p.append(new_r+beta*p[i])
+            if tl.norm(new_r,1) > cutoff :
+                r_tab.append(tl.tenalg.contract(new_r,(0,1,2,3),new_r,(0,1,2,3)))
+                beta=r_tab[i+1]/r_tab[i]
+                p.append(new_r+beta*p[i])
             r=new_r
         B=B+alpha*p[i]
         i=i+1
+
     return B
 
-def compute_gradient(A,b,B,sel,pos0,posL,N,Phi_tilde=[],loss_function="quadratic",label=[]):
+def compute_gradient(A,b,B,sel,pos0,posL,N,cutoff,Phi_tilde=[],loss_function="quadratic",label=[]):
     if(loss_function == "quadratic"):
         if(sel==0 or (sel==1 and sel>pos0) ):
             gradB=tl.tenalg.contract(A,(0,2,4),B,(0,1,2))-b
@@ -473,29 +563,29 @@ def compute_gradient(A,b,B,sel,pos0,posL,N,Phi_tilde=[],loss_function="quadratic
             y=label[i,:]
             if(sel==0 or (sel==1 and sel>pos0) ):
                 fl=tl.tenalg.contract(B,(0,1,2),elem,(0,1,2))
-                gradf=np.exp(fl)/sum(np.exp(fl))-y
+                gradf=np.exp(fl)/(sum(np.exp(fl))+cutoff)-y
                 gradB+=tl.tenalg.mode_dot(elem,gradf,3) #=> gradB(s1,s2,alpha2)
             elif( (sel==posL-1 and sel< pos0) or (sel==posL and sel> pos0) ):
                 fl=tl.tenalg.contract(B,(0,1,2,3),elem,(0,1,2,3))
-                gradf=np.exp(fl)/sum(np.exp(fl))-y
+                gradf=np.exp(fl)/(sum(np.exp(fl))+cutoff)-y
                 gradB+=np.multiply.outer(elem,gradf) #gradB(si,alpha(i-1),s(i+1),alpha(i+1),l)
             elif( (sel==posL and sel< pos0) or (sel==posL+1 and sel > pos0)  ):
                 fl=tl.tenalg.contract(B,(0,1,3,4),elem,(0,1,2,3))
-                gradf=np.exp(fl)/sum(np.exp(fl))-y
+                gradf=np.exp(fl)/(sum(np.exp(fl))+cutoff)-y
                 gradf=np.multiply.outer(elem,gradf) #=>gradf(si,alpha(i-1),s(i+1),alpha(i+1),l)
                 gradB+=gradf.transpose((0,1,4,2,3)) #=>gradB(si,alpha(i-1),l,s(i+1),alpha(i+1))
             elif( (sel==N-2 and sel<pos0 ) or sel==N-1):
                 fl=tl.tenalg.contract(B,(0,1,2),elem,(0,1,3))
-                gradf=np.exp(fl)/sum(np.exp(fl))-y
+                gradf=np.exp(fl)/(sum(np.exp(fl))+cutoff)-y
                 gradB+=tl.tenalg.mode_dot(elem,gradf,2) #=> gradB(s(N-1),alpha(N-2),sN)
             else:
                 if(sel>posL):
                     fl=tl.tenalg.contract(B,(0,1,2,3),elem,(0,1,3,4))
-                    gradf=np.exp(fl)/sum(np.exp(fl))-y
+                    gradf=np.exp(fl)/(sum(np.exp(fl))+cutoff)-y
                     gradB+=tl.tenalg.mode_dot(elem,gradf,2) #gradB(si,alpha(i-1),s(i+1),alpha(i+1))
                 else:
                     fl=tl.tenalg.contract(B,(0,1,2,3),elem,(0,1,2,3))
-                    gradf=np.exp(fl)/sum(np.exp(fl))-y
+                    gradf=np.exp(fl)/(sum(np.exp(fl))+cutoff)-y
                     gradB+=tl.tenalg.mode_dot(elem,gradf,4) #gradB(si,alpha(i-1),s(i+1),alpha(i+1))
     elif(loss_function == "log-quadratic"):
         gradB=0
@@ -696,11 +786,34 @@ def gradient_descent_fixed_stepsize(A,b,B,sel,pos0,posL,N,alpha,nbTraining,cutof
     i=0
     gradB=0
     while( (i==0 or tl.norm(gradB,2) > cutoff ) and i<Npass):
-        gradB = compute_gradient(A,b,B,sel,pos0,posL,N,Phi_tilde,loss_function,label)
+        gradB = compute_gradient(A,b,B,sel,pos0,posL,N,cutoff,Phi_tilde,loss_function,label)
         B=B-alpha*gradB/nbTraining
         i=i+1
     return B
 
+def Adam(A,b,B,sel,pos0,posL,N,alpha,nbTraining,cutoff,Npass,Phi_tilde,loss_function,label,beta1 = 0.9, beta2 = 0.999):
+    i=0
+    gradB=0 ; vdB = 0; sdB = 0
+    while( (i==0 or tl.norm(gradB,2) > cutoff ) and i<Npass):
+        i=i+1
+        gradB = compute_gradient(A,b,B,sel,pos0,posL,N,cutoff,Phi_tilde,loss_function,label)
+
+        # Moving average of the gradients
+        vdB = beta1*vdB +(1-beta1)*gradB
+
+        # Compute bias-corrected first moment estimate
+        v_cor = vdB/(1-beta1**i)
+
+        # Moving average of the squared gradients
+        sdB = beta2*sdB +(1-beta2)*np.power(gradB,2)
+
+        # Compute bias-corrected second raw moment estimate
+        s_cor = sdB/(1-beta2**i)
+
+        # Update parameter
+        B=B-alpha*v_cor/(np.sqrt(s_cor)+cutoff)
+        
+    return B
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 
-from src.tensor_network.algos_DMRG.gradient import DMRG_creation_B_Atilde, DMRG_creation_phi_tilde, DMRG_calcul_cout_gradient , DMRG_calcul_cout_gradient_test , gradient_descent_fixed_stepsize , ConjugateGradient , ConjugateGradient2 , compute_stuff_gradient , compute_cost , DMRG_creation_phi_tilde_test
+from src.tensor_network.algos_DMRG.gradient import DMRG_creation_B_Atilde, DMRG_creation_phi_tilde, DMRG_calcul_cout_gradient , DMRG_calcul_cout_gradient_test , gradient_descent_fixed_stepsize , ConjugateGradient , ConjugateGradient2 , compute_stuff_gradient , compute_cost , DMRG_creation_phi_tilde_test , Adam 
 from src.tensor_network.algos_DMRG.SVD import SVD_B
 from src.mapping.phi import phi
 from src.tensor_network.algo_GD.gradient import GD_creation_phi_tilde, GD_calcul_cout_gradient 
@@ -10,6 +10,36 @@ from src.tensor.tensor import contractMPS
 
 
 class ModelMPS :
+    """
+    A class used to represent the Matrix Product State of a tensor
+
+    This class is design in order to optimize a matrix product state in order to classify images or inputs in classes. 
+    This process is simlar to what is described in the paper arxiv:1605.05775, but where the label index stays 
+    fixed on the central tensor and does not move around during optimization.
+
+    Attributes
+    ----------
+    N : int
+        the number of tensor in the MPS form which is equal to the number of inputs
+    diml : int
+        the number of classes of the database
+    W : list
+        a list containing all the tensors of the MPS form
+    nbSweep : int
+        the number of sweeps made during optimization
+    posL : int
+        the position of the tensor with the label index
+    loss_function : str
+        the name of the loss function to use for the optimization
+    algo : str
+        the name of the algorithm to use for the optimization
+    optimizer : str
+        the name of the optimizer to use for the optimization
+
+    Methods
+    --------
+    o
+    """
     
     def __init__(self,N,diml,W=[]):
         self.N=N #Number of tensor in the MPS form ( number of pixel )
@@ -19,6 +49,7 @@ class ModelMPS :
 
     #Constant initialisation of the MPS Form
     def onesInitialisation(self,dimalpha,posL=-1,M=-1,goal=1,data=[]):
+
         self.W=[]
         self.posL = posL
 
@@ -50,6 +81,40 @@ class ModelMPS :
             self.W.append(np.ones((2,dimalpha))*mfact)  # dim1 : s(N) , dim2 alpha(N) 
         else:
             self.W.append(np.ones((2,dimalpha,self.diml))*mfact)  # dim1 : s(N) , dim2 alpha(N) , dim3 l
+
+        #Constant initialisation of the MPS Form
+    def onesInitialisation2(self,dimalpha,posL=-1,M=-1,goal=1,data=[],sigma=10**(-5)):
+        self.W=[]
+        self.posL = posL
+
+        if(M==-1):
+            if(len(data)==0):
+                M=((np.sqrt(3)+0.80)/2)**(self.N)
+            else:
+                M=0
+                for example in data:
+                    M_ite = np.prod([np.cos(np.pi/2*elem) + np.sin(np.pi/2*elem) for elem in example])
+                    if M_ite>M:
+                        M=M_ite
+
+        mfact=(goal)**(1/self.N)/(dimalpha**(1-(1/self.N))*M**(1/self.N))
+
+        if(posL==-1):
+            self.posL=math.floor(self.N/2) #le tenseur qui portera l
+        
+        if(self.algo == "GD"):
+            self.posL=self.N-1
+
+        self.W.append(np.ones((2,dimalpha))*mfact+sigma*np.random.randn(2,dimalpha)) #dim1 s(1), dim2 alpha(1) 
+        for i in range(1,self.N-1):
+            if(i==self.posL):
+                self.W.append(np.ones((2,dimalpha,dimalpha,self.diml))*mfact+sigma*np.random.randn(2,dimalpha,dimalpha,self.diml)) # dim1 : s(i) , dim2 alpha(i) ,dim3 alpha(i+1) ,dim4 l
+            else:
+                self.W.append(np.ones((2,dimalpha,dimalpha))*mfact+sigma*np.random.randn(2,dimalpha,dimalpha)) # dim1 : s(i) , dim2 alpha(i) ,dim3 alpha(i+1)
+        if(self.algo=="DMRG"):
+            self.W.append(np.ones((2,dimalpha))*mfact+sigma*np.random.randn(2,dimalpha))  # dim1 : s(N) , dim2 alpha(N) 
+        else:
+            self.W.append(np.ones((2,dimalpha,self.diml))*mfact+sigma*np.random.randn(2,dimalpha,self.diml))  # dim1 : s(N) , dim2 alpha(N) , dim3 l
 
     #Normal initialisation of the MPS Form
     def normalInitialisation(self,dimalpha,mfact=0.95,posL=-1):
@@ -180,7 +245,7 @@ class ModelMPS :
             for n in range(nbTraining):
 
                 #Création de phi_tilde1 et phi_tilde2
-                img=data_x[n].reshape(-1,)
+                img=data_x[n].flatten()#reshape(-1,)
                 si=phi(img[[Min,Max]]) ; Phi=phi(np.delete(img,(sel,poss[0])))
 
                 (Phi_tilde1,Phi_tilde2) = DMRG_creation_phi_tilde_test(A_tilde,Phi,sel,poss[0],n,Min,self.N,nbTraining)
@@ -190,11 +255,12 @@ class ModelMPS :
                 
                 if self.loss_function == "quadratic":
                     A+=An ; b+=bn 
-                elif self.loss_function == "cross-entropy" or self.loss_function == "log-quadratic":
-                    Phi_tilde_tab.append(Phi_tilde)
+                #elif self.loss_function == "cross-entropy" or self.loss_function == "log-quadratic":
+                
+                Phi_tilde_tab.append(Phi_tilde)
 
                 #Calcul du cout
-                cout += compute_cost(B,Phi_tilde,label[n,:],sel,poss[0],self.posL,self.N,self.loss_function)
+                cout += compute_cost(B,Phi_tilde,label[n,:],sel,poss[0],self.posL,self.N,self.loss_function,cutoff)
                 #(cost,gradite) = DMRG_calcul_cout_gradient(B,Phi_tilde1,Phi_tilde2,si,label[n,:],sel,poss[0],self.posL,self.N)
                 #cout += cost
                 #gradB += gradite
@@ -203,13 +269,15 @@ class ModelMPS :
             #err.append( ((1/2)*cout)/nbTraining )
             err.append( cout/nbTraining )
 
+            #print(err[-1],end=" , ")
+
             #B=B-alpha*gradB/nbTraining
             if(self.optimizer=="fixed"):
                 B = gradient_descent_fixed_stepsize(A,b,B,sel,poss[0],self.posL,self.N,alpha,nbTraining,cutoff,Npass,Phi_tilde_tab,self.loss_function,label)
             elif(self.optimizer=="CG"):
-                B = ConjugateGradient2(A,b,Npass,B,sel,poss[0],self.posL,self.N,nbTraining,cutoff)
+                B = ConjugateGradient2(A,b,Npass,B,sel,poss[0],self.posL,self.N,nbTraining,cutoff,Phi_tilde_tab,label,err[-1])
             elif(self.optimizer=="Adam"):
-                pass
+                B = Adam(A,b,B,sel,poss[0],self.posL,self.N,alpha,nbTraining,cutoff,Npass,Phi_tilde_tab,self.loss_function,label)
             
             #a decommenter si vous voulez calculer l'erreur suite a la descente de gradient
             """
