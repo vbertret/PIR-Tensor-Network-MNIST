@@ -22,7 +22,7 @@ pip install -e .
 * `\data`-- the data which is processed or external
   * `\external` MNIST Database without any traitment
   * `\processed` modified MNIST Database with pictures of 14 pixels by 14 pixels
-* `\docs` all the documentation used for the projects
+* `\docs` all the documentation used for the project
 * `\notebooks` different notebooks with example of code to illustrate the projects and to have some example of the syntax in order to use the package
 * `\reports` the 2 reports made for the projects (the first report is in French)
   * `\figures` illustrations of reports
@@ -32,7 +32,7 @@ pip install -e .
   * `\tensor` one method to contract a tensor with inputs
   * `\tensor_network` all the stuff needeed to train a tensor network
     * `modelMPS.py` the central class of the project. It defines a tensor network with different methods to train it
-    * `optimizer.py` different algorithm to reduce the loss : Adam, Gradient Descent with fixed stepsize and Conjugate Gradient Descente
+    * `optimizer.py` different algorithms to reduce the loss : Adam, Gradient Descent with fixed stepsize and Conjugate Gradient Descent
     * `\algo_AGD` some methods to compute the gradient and the cost for basic Alternating Gradient Descent
     * `\algos_DMRG` some methods to compute the gradient and the cost with Density Matrix Renormalization Group
 * `requirements.txt` all the package you need to install so that you can use the project on your own
