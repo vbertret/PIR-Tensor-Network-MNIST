@@ -8,7 +8,7 @@ The project aims to study the classification of images from the MNIST database w
 
 The goal of the project is to optimize a **Matrix Product State** so that it will be able to classify inputs. For that, there are differents possibilities. Here, the 2 possibilities developped are : 
 * a simple algorithm of alternating gradient descent (**AGD**). At each tensor, the algorithm tries to reduce the loss by computing the gradient of the loss function according to the tensor.
-* the Density Matrix Renormalization Group (**DMRG**) . The algorithm do some sweeps along the MPS and at each bond, it contracts 2 tensors and tries to reduce the loss by computing the gradient of loss function according to the contraction.
+* the Density Matrix Renormalization Group (**DMRG**) . The algorithm does some sweeps along the MPS and at each bond, it contracts 2 tensors and tries to reduce the loss by computing the gradient of loss function according to the contraction.
 
 The study is more oriented on the second possibilities **DMRG**. Indeed, this algorithm has a lot of avantages that you can see in the first report.
 
