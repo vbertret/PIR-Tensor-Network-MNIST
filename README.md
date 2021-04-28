@@ -12,9 +12,10 @@ The goal of the project is to optimize a **Matrix Product State** so that it wil
 
 The study is more oriented on the second possibilities **DMRG**. Indeed, this algorithm has a lot of avantages that you can see in the first report.
 
-If you want to test by yourself, you have to clone the repository. After, you need to install all the packages written down in the file `requirements.txt`. Finally, you have to execute this command to install the package src : 
+If you want to test by yourself, you have to clone the repository. After, you just have to execute the 2 commands to install all the packages needeed for the project and especially the package **src** :  
 
 ```
+pip install -r requirements.txt
 pip install -e .
 ```
 
