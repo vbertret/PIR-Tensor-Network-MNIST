@@ -494,6 +494,7 @@ if __name__ == "__main__":
     A = ModelMPS(9,2)
     A.choose_algo("DMRG")
     A.choose_optimizer("CG")
+    A.choose_loss_function("quadratic")
     A.normalInitialization(5,0.4)
     Nt=8 #Nombre de training example
     data=np.zeros((Nt,3,3))
