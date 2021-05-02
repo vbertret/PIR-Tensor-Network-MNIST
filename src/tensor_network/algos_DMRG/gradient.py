@@ -370,7 +370,7 @@ def DMRG_compute_cost(B,Phi_tilde,y,sel,pos0,posL,N,loss_function,eps=10**(-10))
     #Summation over labels of the loss 
     return sum(cost)
 
-def DMRG_compute_gradient(A,b,B,sel,pos0,posL,N,Phi_tilde=[],loss_function="quadratic",label=[],eps=10**(-10)):
+def DMRG_compute_gradient(A,b,B,sel,pos0,posL,N,Phi_tilde=[],loss_function="quadratic",label=[],eps=10**(-16)):
     """ 
     Computation of the gradient.
 
@@ -400,7 +400,7 @@ def DMRG_compute_gradient(A,b,B,sel,pos0,posL,N,Phi_tilde=[],loss_function="quad
     label : list of array (optional)
         the labels of all the pictures (default is [])
     eps : double (optional)
-        to avoid problems of division per zero (default is 10e-10)
+        to avoid problems of division per zero (default is 10e-16)
 
     Returns
     ------

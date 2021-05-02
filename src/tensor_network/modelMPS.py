@@ -1,6 +1,7 @@
 import math
 import numpy as np
 import matplotlib.pyplot as plt
+import tensorly as tl
 
 from src.tensor_network.algos_DMRG.gradient import DMRG_creation_B_Atilde, DMRG_creation_phi_tilde12, DMRG_compute_stuff_gradient , DMRG_compute_cost 
 from src.tensor_network.algos_DMRG.SVD import SVD_B
@@ -139,7 +140,7 @@ class ModelMPS :
         else:
             self.W.append(np.ones((2,dimalpha,self.diml))*mfact+sigma*np.random.randn(2,dimalpha,self.diml))  # dim1 : s(N) , dim2 alpha(N) , dim3 l
 
-    def normalInitialization(self,dimalpha,mfact=0.95,posL=-1):
+    def normalInitialization(self,dimalpha,mfact=0.95,mu=0,posL=-1):
 
         """
         Initializes the terms of the MPS form using number randomly drawn from a normal distribution
@@ -165,16 +166,16 @@ class ModelMPS :
             self.posL=self.N-1
 
         #Initialization of tensors
-        self.W.append(np.random.randn(2,dimalpha)*mfact) #dim1 s(1), dim2 alpha(1) 
+        self.W.append(mu+np.random.randn(2,dimalpha)*mfact) #dim1 s(1), dim2 alpha(1) 
         for i in range(1,self.N-1):
             if(i==self.posL and self.algo=="DMRG"):
-                self.W.append(np.random.randn(2,dimalpha,dimalpha,self.diml)*mfact) # dim1 : s(i) , dim2 alpha(i) ,dim3 alpha(i+1) ,dim4 l
+                self.W.append(mu+np.random.randn(2,dimalpha,dimalpha,self.diml)*mfact) # dim1 : s(i) , dim2 alpha(i) ,dim3 alpha(i+1) ,dim4 l
             else:
-                self.W.append(np.random.randn(2,dimalpha,dimalpha)*mfact) # dim1 : s(i) , dim2 alpha(i) ,dim3 alpha(i+1)
+                self.W.append(mu+np.random.randn(2,dimalpha,dimalpha)*mfact) # dim1 : s(i) , dim2 alpha(i) ,dim3 alpha(i+1)
         if(self.algo=="DMRG"):
-            self.W.append(np.random.randn(2,dimalpha)*mfact)  # dim1 : s(N) , dim2 alpha(N)
+            self.W.append(mu+np.random.randn(2,dimalpha)*mfact)  # dim1 : s(N) , dim2 alpha(N)
         else:
-            self.W.append(np.random.randn(2,dimalpha,self.diml)*mfact) # dim1 : s(N) , dim2 alpha(N) , dim3 l
+            self.W.append(mu+np.random.randn(2,dimalpha,self.diml)*mfact) # dim1 : s(N) , dim2 alpha(N) , dim3 l
 
     def choose_loss_function(self,loss_function):
         """
@@ -292,7 +293,7 @@ class ModelMPS :
                 #According to the loss function, either the method increments A and b, or it stocks Phi_tilde
                 if self.loss_function == "quadratic":
                     A+=An ; b+=bn 
-                elif self.loss_function == "cross-entropy" or self.loss_function == "log-quadratic":
+                elif self.loss_function == "log-quadratic" or self.loss_function == "cross-entropy":
                     Phi_tilde_tab.append(Phi_tilde)
 
                 #Computation of the cost
@@ -302,15 +303,16 @@ class ModelMPS :
             err.append( cost/nbTraining )
 
             #Optimization step
-            if(self.optimizer=="fixed"):
+            if(self.optimizer=="GD"):
                 B = gradient_descent_fixed_stepsize(A,b,B,sel,poss[0],self.posL,self.N,alpha,nbTraining,cutoff,Npass,Phi_tilde_tab,self.loss_function,label)
             elif(self.optimizer=="CG"):
-                B = ConjugateGradient(A,b,Npass,B,sel,poss[0],self.posL,self.N,nbTraining,cutoff,Phi_tilde_tab,label,err[-1])
+                B = ConjugateGradient(A,b,Npass,B,sel,poss[0],self.posL,self.N,nbTraining,cutoff)
             elif(self.optimizer=="Adam"):
                 B = Adam(A,b,B,sel,poss[0],self.posL,self.N,alpha,nbTraining,cutoff,Npass,Phi_tilde_tab,self.loss_function,label)
             
             #Computation of the SVD in order to find back the 2 tensors
             (self.W[Min],self.W[Max])=SVD_B(sel,poss[0],B,self.posL,self.N,maxalpha,cutoff,nmethod)
+
 
         return err
 
